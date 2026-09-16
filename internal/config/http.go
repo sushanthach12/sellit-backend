@@ -5,9 +5,11 @@ import (
 	"time"
 )
 
-func GetServerConfig(handler http.Handler) *http.Server {
+func GetServerConfig(handler http.Handler, cfg ConfigVars) *http.Server {
+	port := ":" + cfg.Port
+
 	return &http.Server{
-		Addr:         ":8000",
+		Addr:         port,
 		Handler:      handler,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 30,
