@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-s -w' -o bin/api ./cmd/api
 
 # ---- Run stage ----
 FROM alpine:3.24
@@ -17,8 +17,8 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=builder /app/server .
+COPY --from=builder /app/bin/api .
 
 EXPOSE 8000
 
-CMD ["./server"]
+CMD ["./api"]
