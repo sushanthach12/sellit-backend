@@ -8,8 +8,9 @@ import (
 )
 
 type ConfigVars struct {
-	Port string
-	Env  string
+	Port        string
+	Env         string
+	DatabaseUrl string
 }
 
 // Must pattern in go: Must refers that it must load, other panic out from it
@@ -33,9 +34,11 @@ func MustLoad() ConfigVars {
 
 	port := mustGetEnv("PORT")
 	envVar := mustGetEnv("ENV")
+	databaseUrl := mustGetEnv("DATABASE_URL")
 
 	return ConfigVars{
-		Port: port,
-		Env:  envVar,
+		Port:        port,
+		Env:         envVar,
+		DatabaseUrl: databaseUrl,
 	}
 }

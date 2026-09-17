@@ -5,12 +5,19 @@ import (
 	"net/http"
 
 	"github.com/sushanthach12/sellit-backend/internal/config"
+	"github.com/sushanthach12/sellit-backend/internal/database"
 	"github.com/sushanthach12/sellit-backend/internal/routes"
 )
 
 func main() {
 	// Load environment variables and configuration
 	cfg := config.MustLoad()
+
+	// Initialize the database connection
+	_, err := database.Connect(cfg.DatabaseUrl)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
 
 	mux := http.NewServeMux() // Create a new ServeMux for routing
 
