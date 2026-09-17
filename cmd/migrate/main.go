@@ -45,7 +45,10 @@ func handleUp(m *migrate.Migrate) {
 }
 
 func handleDown(m *migrate.Migrate) {
-	if err := m.Down(); err != nil {
+	// if err := m.Down(); err != nil {
+
+	// Below .Step(-1) only rollbacks the just previous up migration, not all the down migrations
+	if err := m.Steps(-1); err != nil {
 		log.Fatal("migrate.Down: ", err)
 	}
 }
