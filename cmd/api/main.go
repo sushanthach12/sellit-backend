@@ -23,14 +23,6 @@ func main() {
 
 	routes.RegisterRoutes(mux)
 
-	// server := &http.Server{
-	// 	Addr:         ":8000",
-	// 	Handler:      mux,
-	// 	ReadTimeout:  time.Second * 10,
-	// 	WriteTimeout: time.Second * 30,
-	// 	IdleTimeout:  time.Second * 60,
-	// }
-
 	server := config.GetServerConfig(mux, cfg)
 
 	log.Printf("Server listening at port %s and running in %s mode", server.Addr, cfg.Env)
