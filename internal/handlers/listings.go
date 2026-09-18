@@ -45,6 +45,11 @@ func NewListingHandler(db *sql.DB) *ListingHandler {
 }
 
 func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
+	// request scoped context
+	// using context helps in zombie query handling,
+	// it helps if the client request is cancelled or timeout, this helps in closing the db queries as, without this the query will be continuously running
+	ctx := r.Context()
+
 	log.Println("Received request for listings")
 
 	w.Header().Set("Content-Type", "application/json")
@@ -63,7 +68,8 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	skip := (page - 1) * limit
 
-	rows, err := lh.db.Query(
+	rows, err := lh.db.QueryContext(
+		ctx,
 		`
 			SELECT id, title, description, price, city, status, created_at, updated_at
 			FROM listings
@@ -108,6 +114,8 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	log.Println("Received request for delete listing")
 
 	w.Header().Set("Content-Type", "application/json")
@@ -120,7 +128,8 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := lh.db.Exec(
+	result, err := lh.db.ExecContext(
+		ctx,
 		`DELETE FROM listings WHERE id = $1;`,
 		listingId,
 	)
