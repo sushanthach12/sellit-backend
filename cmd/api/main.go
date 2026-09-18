@@ -14,14 +14,14 @@ func main() {
 	cfg := config.MustLoad()
 
 	// Initialize the database connection
-	_, err := database.Connect(cfg.DatabaseUrl)
+	db, err := database.Connect(cfg.DatabaseUrl)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
 	mux := http.NewServeMux() // Create a new ServeMux for routing
 
-	routes.RegisterRoutes(mux)
+	routes.RegisterRoutes(mux, db)
 
 	server := config.GetServerConfig(mux, cfg)
 
