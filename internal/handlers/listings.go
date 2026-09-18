@@ -88,3 +88,40 @@ func List(db *sql.DB) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(resp)
 	}
 }
+
+func DeleteListing(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Received request for delete listing")
+
+		w.Header().Set("Content-Type", "application/json")
+
+		// Not required since id there is id they "Method not allowed" will thrown
+		listingId := r.PathValue("id")
+		if listingId == "" {
+			log.Println("Listing id is required")
+			http.Error(w, "Listing id is required", http.StatusBadRequest)
+			return
+		}
+
+		result, err := db.Exec(
+			`DELETE FROM listings WHERE id = $1;`,
+			listingId,
+		)
+		if err != nil {
+			log.Printf("delete error: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// below is not required, and we should not send any message like "Record not found" due to security concern
+		affected, err := result.RowsAffected()
+		if err != nil || affected == 0 {
+			log.Printf("rows affected error: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("Record Deleted Successfully"))
+	}
+}
