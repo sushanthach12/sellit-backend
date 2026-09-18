@@ -10,6 +10,7 @@ import (
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB) {
 	mux.HandleFunc("GET /health", handlers.HealthCheck)
 
-	mux.HandleFunc("GET /listings", handlers.List(db))
-	mux.HandleFunc("DELETE /listings/{id}", handlers.DeleteListing(db))
+	listingHandler := handlers.NewListingHandler(db)
+	mux.HandleFunc("GET /listings", listingHandler.List)
+	mux.HandleFunc("DELETE /listings/{id}", listingHandler.Delete)
 }
