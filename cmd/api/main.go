@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/sushanthach12/sellit-backend/internal/config"
 	"github.com/sushanthach12/sellit-backend/internal/database"
@@ -18,6 +20,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
+
+	loggerHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		// AddSource: true,
+		Level: slog.LevelDebug,
+	})
+	logger := slog.New(loggerHandler)
+	slog.SetDefault(logger)
 
 	mux := http.NewServeMux() // Create a new ServeMux for routing
 

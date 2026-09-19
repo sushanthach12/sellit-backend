@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -79,7 +80,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		limit, skip,
 	)
 	if err != nil || rows.Err() != nil {
-		log.Printf("Get Listing: %v", err)
+		slog.Error("Get Listing:", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -95,7 +96,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		// because the Scan will be assigning in the way we select the columns in the SELECT query above, otherwise it throws the error
 		err := rows.Scan(&l.ID, &l.Title, &l.Description, &l.Price, &l.City, &l.Status, &l.CreatedAt, &l.UpdatedAt)
 		if err != nil {
-			log.Printf("rows.Scan: %v", err)
+			slog.Error("rows.Scan:", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -123,7 +124,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	// Not required since id there is id they "Method not allowed" will thrown
 	listingId := r.PathValue("id")
 	if listingId == "" {
-		log.Println("Listing id is required")
+		slog.Error("Listing id is required")
 		http.Error(w, "Listing id is required", http.StatusBadRequest)
 		return
 	}
@@ -134,7 +135,8 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		listingId,
 	)
 	if err != nil {
-		log.Printf("delete error: %v", err)
+		// log.Printf("delete error: %v", err)
+		slog.Error("Failed to delete:", "listing_id", listingId, "err", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -142,7 +144,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	// below is not required, and we should not send any message like "Record not found" due to security concern
 	affected, err := result.RowsAffected()
 	if err != nil || affected == 0 {
-		log.Printf("rows affected error: %v", err)
+		slog.Error("rows affected", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
