@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sushanthach12/sellit-backend/internal/constants"
+	"github.com/sushanthach12/sellit-backend/internal/httpx"
 	"github.com/sushanthach12/sellit-backend/internal/middleware"
 )
 
@@ -71,11 +72,20 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	skip := (page - 1) * limit
 
+	// get total record count first so we can compute total pages
+	var totalItems int
+	err = lh.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM listings`).Scan(&totalItems)
+	if err != nil {
+		lh.logger.Error("Get Listing count:", "error", err)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
+		return
+	}
+
 	rows, err := lh.db.QueryContext(
 		ctx,
 		`
 			SELECT id, title, description, price, city, status, created_at, updated_at
-			FROM listings
+			FROM listing
 			ORDER BY created_at DESC
 			LIMIT $1 OFFSET $2
 			`,
@@ -83,7 +93,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil || rows.Err() != nil {
 		lh.logger.Error("Get Listing:", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 		return
 	}
 
@@ -99,18 +109,21 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		err := rows.Scan(&l.ID, &l.Title, &l.Description, &l.Price, &l.City, &l.Status, &l.CreatedAt, &l.UpdatedAt)
 		if err != nil {
 			lh.logger.Error("rows.Scan:", "error", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 			return
 		}
 
 		listings = append(listings, l)
 	}
 
+	// compute total pages using actual total record count, rounding up
+	totalPages := (totalItems + limit - 1) / limit
+
 	resp := constants.NewPaginatedResponse(listings, constants.Pagination{
 		Page:       page,
 		PageSize:   limit,
-		TotalItems: len(listings),
-		TotalPages: len(listings) / limit, // ! FIX THIS BY TOTAL RECORDS query
+		TotalItems: totalItems,
+		TotalPages: totalPages,
 	})
 
 	_ = json.NewEncoder(w).Encode(resp)
@@ -127,7 +140,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	listingId := r.PathValue("id")
 	if listingId == "" {
 		slog.Error("Listing id is required")
-		http.Error(w, "Listing id is required", http.StatusBadRequest)
+		httpx.Error(w, http.StatusBadRequest, "Listing id is required", httpx.CodeInvalidId)
 		return
 	}
 
@@ -139,7 +152,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// log.Printf("delete error: %v", err)
 		lh.logger.Error("Failed to delete:", "listing_id", listingId, "err", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 		return
 	}
 
@@ -147,7 +160,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	affected, err := result.RowsAffected()
 	if err != nil || affected == 0 {
 		lh.logger.Error("rows affected", "error", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 		return
 	}
 
