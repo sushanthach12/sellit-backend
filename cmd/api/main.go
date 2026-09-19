@@ -26,11 +26,11 @@ func main() {
 		Level: slog.LevelDebug,
 	})
 	logger := slog.New(loggerHandler)
-	slog.SetDefault(logger)
+	// slog.SetDefault(logger)
 
 	mux := http.NewServeMux() // Create a new ServeMux for routing
 
-	routes.RegisterRoutes(mux, db)
+	routes.RegisterRoutes(mux, db, logger)
 
 	server := config.GetServerConfig(mux, cfg)
 

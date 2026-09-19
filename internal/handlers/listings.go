@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -38,11 +37,12 @@ type listing struct {
 
 */
 type ListingHandler struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *slog.Logger
 }
 
-func NewListingHandler(db *sql.DB) *ListingHandler {
-	return &ListingHandler{db: db}
+func NewListingHandler(db *sql.DB, logger *slog.Logger) *ListingHandler {
+	return &ListingHandler{db: db, logger: logger}
 }
 
 func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 	// it helps if the client request is cancelled or timeout, this helps in closing the db queries as, without this the query will be continuously running
 	ctx := r.Context()
 
-	log.Println("Received request for listings")
+	lh.logger.Info("Received request for listings")
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -80,7 +80,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		limit, skip,
 	)
 	if err != nil || rows.Err() != nil {
-		slog.Error("Get Listing:", "error", err)
+		lh.logger.Error("Get Listing:", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -96,7 +96,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		// because the Scan will be assigning in the way we select the columns in the SELECT query above, otherwise it throws the error
 		err := rows.Scan(&l.ID, &l.Title, &l.Description, &l.Price, &l.City, &l.Status, &l.CreatedAt, &l.UpdatedAt)
 		if err != nil {
-			slog.Error("rows.Scan:", "error", err)
+			lh.logger.Error("rows.Scan:", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -117,7 +117,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	log.Println("Received request for delete listing")
+	lh.logger.Info("Received request for delete listing")
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -136,7 +136,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		// log.Printf("delete error: %v", err)
-		slog.Error("Failed to delete:", "listing_id", listingId, "err", err)
+		lh.logger.Error("Failed to delete:", "listing_id", listingId, "err", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -144,7 +144,7 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	// below is not required, and we should not send any message like "Record not found" due to security concern
 	affected, err := result.RowsAffected()
 	if err != nil || affected == 0 {
-		slog.Error("rows affected", "error", err)
+		lh.logger.Error("rows affected", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
