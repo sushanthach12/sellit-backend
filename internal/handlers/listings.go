@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sushanthach12/sellit-backend/internal/constants"
+	"github.com/sushanthach12/sellit-backend/internal/middleware"
 )
 
 // make sure the key names are starting with the capitals, otherwise during the rows.Scan they wont be assigned, because they would be private
@@ -50,8 +51,9 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 	// using context helps in zombie query handling,
 	// it helps if the client request is cancelled or timeout, this helps in closing the db queries as, without this the query will be continuously running
 	ctx := r.Context()
+	requestId := middleware.GetRequestIdFromContext(ctx)
 
-	lh.logger.Info("Received request for listings")
+	lh.logger.Info("Received request for listings", "requestId", requestId)
 
 	w.Header().Set("Content-Type", "application/json")
 
