@@ -178,7 +178,7 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	lh.logger.Info("Received Request for listing create")
 
-	// VALIDATION through dto's
+	// scoping/retrieve only the required fields from the request
 	var payload dto.CreateListingPayloadDto
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
@@ -186,6 +186,8 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadGateway, "Invalid Payload", httpx.CodeMalformedJson)
 		return
 	}
+
+	// DATA Validation
 
 	// QueryRowContext for expected to return at-least one row after create
 	row := lh.db.QueryRowContext(
