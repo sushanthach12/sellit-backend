@@ -63,8 +63,6 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	lh.logger.Info("Received request for listings", "requestId", requestId)
 
-	w.Header().Set("Content-Type", "application/json")
-
 	queryParams := r.URL.Query()
 
 	page, err := strconv.Atoi(queryParams.Get("page"))
@@ -141,8 +139,6 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	lh.logger.Info("Received request for delete listing")
 
-	w.Header().Set("Content-Type", "application/json")
-
 	// Not required since id there is id they "Method not allowed" will thrown
 	listingId := r.PathValue("id")
 	if listingId == "" {
@@ -175,7 +171,6 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	ctx := r.Context()
 	requestId := middleware.GetRequestIdFromContext(ctx)
 
