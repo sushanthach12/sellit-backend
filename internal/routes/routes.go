@@ -13,5 +13,6 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB, logger *slog.Logger) {
 
 	listingHandler := handlers.NewListingHandler(db, logger)
 	mux.HandleFunc("GET /listings", listingHandler.List)
+	mux.HandleFunc("POST /listings", listingHandler.Create)
 	mux.HandleFunc("DELETE /listings/{id}", listingHandler.Delete)
 }

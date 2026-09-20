@@ -25,6 +25,13 @@ type listing struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type createPayload struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Price       float32 `json:"price"`
+	City        string  `json:"city"`
+}
+
 // Constructor pattern for dependency handling for the handlers
 // this improves code quality
 /*
@@ -85,7 +92,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		`
 			SELECT id, title, description, price, city, status, created_at, updated_at
-			FROM listing
+			FROM listings
 			ORDER BY created_at DESC
 			LIMIT $1 OFFSET $2
 			`,
@@ -119,14 +126,14 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 	// compute total pages using actual total record count, rounding up
 	totalPages := (totalItems + limit - 1) / limit
 
-	resp := constants.NewPaginatedResponse(listings, constants.Pagination{
+	response := constants.NewPaginatedResponse(listings, constants.Pagination{
 		Page:       page,
 		PageSize:   limit,
 		TotalItems: totalItems,
 		TotalPages: totalPages,
 	})
 
-	_ = json.NewEncoder(w).Encode(resp)
+	httpx.WriteJSON(w, http.StatusOK, response)
 }
 
 func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +171,59 @@ func (lh *ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
-	w.Write([]byte("Record Deleted Successfully"))
+	httpx.WriteJSON(w, http.StatusNoContent, constants.NewResponse("Record Deleted Successfully", nil))
+}
+
+func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	ctx := r.Context()
+	requestId := middleware.GetRequestIdFromContext(ctx)
+
+	lh.logger.Info("Received Request for listing create")
+
+	var payload createPayload
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		lh.logger.Error("Malformed Payload:", "error", err)
+		httpx.Error(w, http.StatusBadGateway, "Invalid Payload", httpx.CodeMalformedJson)
+		return
+	}
+
+	// VALIDATION
+
+	// QueryRowContext for expected to return at-least one row after create
+	row := lh.db.QueryRowContext(
+		ctx,
+		`
+		INSERT INTO listings (title, "description", price, city, status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+		`,
+		payload.Title,
+		payload.Description,
+		payload.Price,
+		payload.City,
+		"active",
+	)
+
+	if row.Err() != nil {
+		lh.logger.Error("Error Create Listing:", "error", err)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
+		return
+	}
+
+	var result string
+	if err := row.Scan(&result); err != nil {
+		lh.logger.Error("Failed to insert:", "error", err)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
+		return
+	}
+
+	response := constants.NewResponse(map[string]string{
+		"id": result,
+	}, nil)
+
+	lh.logger.Info("Listing created", "request_id", requestId)
+
+	httpx.WriteJSON(w, http.StatusCreated, response)
 }
