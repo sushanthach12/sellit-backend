@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sushanthach12/sellit-backend/internal/constants"
+	dto "github.com/sushanthach12/sellit-backend/internal/handlers/dto"
 	"github.com/sushanthach12/sellit-backend/internal/httpx"
 	"github.com/sushanthach12/sellit-backend/internal/middleware"
 )
@@ -23,13 +24,6 @@ type listing struct {
 	Status      string    `json:"status"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-type createPayload struct {
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Price       float32 `json:"price"`
-	City        string  `json:"city"`
 }
 
 // Constructor pattern for dependency handling for the handlers
@@ -104,7 +98,7 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	defer rows.Close()
 
-	listings := []listing{}
+	listings := []dto.GetListingResponseDto{}
 
 	for rows.Next() {
 		var l listing
@@ -118,7 +112,15 @@ func (lh *ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		listings = append(listings, l)
+		listings = append(listings, dto.GetListingResponseDto{
+			Id:          l.ID,
+			Title:       l.Title,
+			Description: l.Description,
+			Price:       l.Price,
+			City:        l.City,
+			Status:      l.Status,
+			CreatedAt:   l.CreatedAt,
+		})
 	}
 
 	// compute total pages using actual total record count, rounding up
@@ -176,7 +178,8 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	lh.logger.Info("Received Request for listing create")
 
-	var payload createPayload
+	// VALIDATION through dto's
+	var payload dto.CreateListingPayloadDto
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		lh.logger.Error("Malformed Payload:", "error", err)
@@ -184,15 +187,13 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// VALIDATION
-
 	// QueryRowContext for expected to return at-least one row after create
 	row := lh.db.QueryRowContext(
 		ctx,
 		`
 		INSERT INTO listings (title, "description", price, city, status)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id
+		RETURNING id, title, created_at
 		`,
 		payload.Title,
 		payload.Description,
@@ -207,16 +208,14 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var result string
-	if err := row.Scan(&result); err != nil {
+	var result dto.CreateListingResponseDto
+	if err := row.Scan(&result.ID, &result.Title, &result.CreatedAt); err != nil {
 		lh.logger.Error("Failed to insert:", "error", err)
 		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 		return
 	}
 
-	response := constants.NewResponse(map[string]string{
-		"id": result,
-	}, nil)
+	response := constants.NewResponse(result, nil)
 
 	lh.logger.Info("Listing created", "request_id", requestId)
 
