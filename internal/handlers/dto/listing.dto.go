@@ -30,6 +30,13 @@ func (payload *CreateListingPayloadDto) Validate() error {
 		}
 	}
 
+	if helpers.CheckStringLen(payload.Description, 1, 5000) {
+		return &constants.ValidationError{
+			Field:   "description",
+			Message: "must not be empty",
+		}
+	}
+
 	if helpers.CheckIfStringEmpty(payload.City) {
 		return &constants.ValidationError{
 			Field:   "city",
