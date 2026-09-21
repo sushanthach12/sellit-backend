@@ -1,12 +1,20 @@
-package handlers
+package health
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 )
 
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Println("Health check endpoint hit")
+type Handler struct {
+	logger *slog.Logger
+}
+
+func NewHandler(logger *slog.Logger) *Handler {
+	return &Handler{logger: logger}
+}
+
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("Health check endpoint hit")
 
 	w.Header().Set("Content-Type", "application/json") // Anything that is written after the WriteHeader call will be sent as the response body
 	// so any headers modifications should be done before the WriteHeader call

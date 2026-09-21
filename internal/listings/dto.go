@@ -1,4 +1,4 @@
-package handlers
+package listings
 
 import (
 	"time"
@@ -30,12 +30,12 @@ func (payload *CreateListingPayloadDto) Validate() error {
 		}
 	}
 
-	if helpers.CheckStringLen(payload.Description, 1, 5000) {
-		return &constants.ValidationError{
-			Field:   "description",
-			Message: "must not be empty",
-		}
-	}
+	// if helpers.CheckStringLen(payload.Description, 1, 10000) {
+	// 	return &constants.ValidationError{
+	// 		Field:   "description",
+	// 		Message: "must be within 1 - 5000",
+	// 	}
+	// }
 
 	if helpers.CheckIfStringEmpty(payload.City) {
 		return &constants.ValidationError{

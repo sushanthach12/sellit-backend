@@ -5,14 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/sushanthach12/sellit-backend/internal/handlers"
+	"github.com/sushanthach12/sellit-backend/internal/health"
+	"github.com/sushanthach12/sellit-backend/internal/listings"
 )
 
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB, logger *slog.Logger) {
-	mux.HandleFunc("GET /health", handlers.HealthCheck)
+	health.Register(mux, logger)
 
-	listingHandler := handlers.NewListingHandler(db, logger)
-	mux.HandleFunc("GET /listings", listingHandler.List)
-	mux.HandleFunc("POST /listings", listingHandler.Create)
-	mux.HandleFunc("DELETE /listings/{id}", listingHandler.Delete)
+	listings.Register(mux, db, logger)
 }
