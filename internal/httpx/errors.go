@@ -51,6 +51,7 @@ var (
 type errorPayload struct {
 	Code    ErrorCode `json:"code"`
 	Message string    `json:"message"`
+	Field   string    `json:"field,omitempty"` // when empty the field is not shown
 }
 
 type errorResponse struct {
@@ -65,6 +66,19 @@ func Error(w http.ResponseWriter, status_code int, message string, code ErrorCod
 		Error: errorPayload{
 			Code:    code,
 			Message: message,
+		},
+	})
+}
+
+func ValidationError(w http.ResponseWriter, status_code int, message string, code ErrorCode, field string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status_code)
+
+	_ = json.NewEncoder(w).Encode(errorResponse{
+		Error: errorPayload{
+			Code:    code,
+			Message: message,
+			Field:   field,
 		},
 	})
 }

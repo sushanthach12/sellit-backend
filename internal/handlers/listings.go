@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -188,6 +189,14 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// DATA Validation
+	if err := payload.Validate(); err != nil {
+		var validationErr *constants.ValidationError
+		errors.As(err, &validationErr) // just to the Field variable for the field return, because the err will not have it, so this get the parent or the first error in the error tree
+
+		lh.logger.Error("Validation failed:", "error", err.Error())
+		httpx.ValidationError(w, http.StatusUnprocessableEntity, err.Error(), httpx.CodeValidationFailed, validationErr.Field)
+		return
+	}
 
 	// QueryRowContext for expected to return at-least one row after create
 	row := lh.db.QueryRowContext(
@@ -204,7 +213,7 @@ func (lh *ListingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"active",
 	)
 
-	if row.Err() != nil {
+	if err := row.Err(); err != nil {
 		lh.logger.Error("Error Create Listing:", "error", err)
 		httpx.Error(w, http.StatusInternalServerError, "Something went wrong!", httpx.CodeInternalError)
 		return

@@ -1,6 +1,11 @@
 package handlers
 
-import "time"
+import (
+	"time"
+
+	"github.com/sushanthach12/sellit-backend/internal/constants"
+	"github.com/sushanthach12/sellit-backend/internal/helpers"
+)
 
 // Only decode the required fields unnecessary fields are omitted
 type CreateListingPayloadDto struct {
@@ -8,6 +13,38 @@ type CreateListingPayloadDto struct {
 	Description string  `json:"description"`
 	Price       float32 `json:"price"`
 	City        string  `json:"city"`
+}
+
+func (payload *CreateListingPayloadDto) Validate() error {
+	if helpers.CheckIfStringEmpty(payload.Title) {
+		return &constants.ValidationError{
+			Field:   "title",
+			Message: "must not be empty",
+		}
+	}
+
+	if helpers.CheckIfStringEmpty(payload.Description) {
+		return &constants.ValidationError{
+			Field:   "description",
+			Message: "must not be empty",
+		}
+	}
+
+	if helpers.CheckIfStringEmpty(payload.City) {
+		return &constants.ValidationError{
+			Field:   "city",
+			Message: "must not be empty",
+		}
+	}
+
+	if !helpers.CheckIfValidNumber(payload.Price, true) {
+		return &constants.ValidationError{
+			Field:   "price",
+			Message: "should be greater than 0",
+		}
+	}
+
+	return nil
 }
 
 type CreateListingResponseDto struct {
